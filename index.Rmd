@@ -1,0 +1,141 @@
+---
+title: "Visual Analytics - Deliverable 2"
+output:
+  html_document:
+    df_print: paged
+---
+
+##Delivarable 2 Bivariate relationships : Categorical-Categorical
+
+#1. We import the LSMS-ISA Nigeria Wave 3 Dataset from my personal repository
+```{r getData, eval=TRUE}
+library(rio)
+rm(list = ls())
+nigeria_w3<-read.csv('https://github.com/Sebastian-Wood-Visual-Analytics/deliverable1/raw/main/NGA_W3_EPAR.csv')
+View(nigeria_w3)
+```
+
+#2. #Select some of the variables and create a new Dataset
+```{r}
+
+library(tidyverse)
+nigeria_w3 <- select(nigeria_w3, hhid, zone, rural, daily_percap_cons, months_food_insec)
+```
+
+```{r}
+#Preparing Contigency Tables
+zones_monthsfinsecure=table(nigeria_w3$zone,nigeria_w3$months_food_insec,
+                            exclude = '')
+zones_monthsfinsecure
+
+
+```
+
+When a table tries to hypothesize a relationship, you should have the independent variable in the columns (food insecurity), and the dependent one (zones) in the rows. Interpretation is difficult when you have counts so it is better to have percents. Percents should be computed by column to see how the levels of the dependent variable varies by each level of the independent one (reading along rows):
+
+```{r}
+# computing column percent from contingency table
+library(magrittr) # for %>%
+(zones_monthsfinsecure.mgCol=prop.table(zones_monthsfinsecure,
+                            margin = 2) #2 means by column
+                             %>%round(.,3))
+```
+ As before, we need to turn this table into a data frame:
+```{r}
+#making a data frame from contingency table
+(zones_monthsfinsecureDF=as.data.frame(zones_monthsfinsecure))
+
+#We also have the table with marginal percents by column:
+
+as.data.frame(zones_monthsfinsecure.mgCol)
+
+#We should simply add the last column to the data frame of counts.
+
+zones_monthsfinsecureDF$share=as.data.frame(zones_monthsfinsecure.mgCol)[,3]
+zones_monthsfinsecureDF
+
+#We can change the names of the previous data frame:
+
+names(zones_monthsfinsecureDF)[1:3]=c("zones","m_foodins","counts")
+
+#then
+zones_monthsfinsecureDF
+```
+
+We will use ggplot to represent the contingency table:
+```{r}
+
+library(ggplot2)
+base1=ggplot(data=zones_monthsfinsecureDF, 
+             aes(x=m_foodins,
+                 y=share,
+                 fill=zones)) # fill brings a legend
+```
+
+```{r}
+#Then, you play with some positions for the bar. First, the dodge style:
+
+barDodge= base1 +  geom_bar(stat="identity",
+                            position ='dodge') 
+barDodge 
+```
+
+Te second is the stack style:
+```{r}
+barStacked = base1 + geom_bar(stat = "identity",
+                              position = 'stack')#default
+barStacked 
+
+```
+
+The stacked version will help more than the dodged one as it reveals better the values in the contingency table:
+```{r}
+zones_monthsfinsecure.mgCol
+```
+
+So, we continue with adding some elements to this one:
+```{r}
+library(scales)
+#annotating
+barStackedAnn= barStacked + geom_text(size = 3,# check below:
+                             position = position_stack(vjust = 0.5),# center
+                             aes(label=percent(share,accuracy = 0.1)))# percent format
+
+barStackedAnn = barStackedAnn + scale_y_continuous(labels = percent)
+
+barStackedAnn
+```
+
+
+Since the precinct is nominal, and you see some marked differences along the percents, you can reorder the precinct blocks with reorder():
+```{r}
+base1=ggplot(data=zones_monthsfinsecureDF, 
+             aes(x=m_foodins, y=share,
+                 fill=reorder(zones,share))) ## reordering
+
+barStacked = base1 + geom_bar(stat = "identity",
+                              position = 'stack')
+barStacked= barStacked + geom_text(size = 3,
+                             position = position_stack(vjust = 0.5),
+                             aes(label=percent(share,accuracy = 0.1)))
+
+barStacked = barStacked + scale_y_continuous(labels = percent)
+
+barStacked
+```
+
+```{r}
+#Add titles:
+titleText='Nigeria 2015-16: Food Insecurity for Agricultural SSP by Geographic Zones'
+sourceText='Source: Evans School Policy Analysis and Research Group (EPAR).'
+x_axis='Number of Months Food Insecure'
+y_axis='Percentage of Total Households surveyed (%)'
+check="Zones"
+barStacked = barStacked + labs(title=titleText,
+                     x =x_axis,
+                     y =y_axis,
+                     caption = sourceText,
+                     fill =check) 
+barStacked
+```
+
