@@ -139,3 +139,94 @@ barStacked = barStacked + labs(title=titleText,
 barStacked
 ```
 
+#Upon Comments of Professor Magallanes I will create Facets
+```{r}
+#A first option you be to use a barplot with facets with bars dodged. Let’a make the first attempt.
+
+# base with only X and Y in 'aes()'
+baseBar = ggplot(zones_monthsfinsecureDF, aes(x = m_foodins, y = share ) ) 
+
+#the bars
+barPlot  = baseBar + geom_bar( stat = "identity" ) 
+
+barPlot
+```
+
+```{r}
+#Now see the facets:
+
+# bar per day time with 'facet'
+barsFt = barPlot + facet_grid(~ zones) 
+
+barsFt
+```
+
+```{r}
+#This does not look like the crosstable yet; let’s solve that:
+
+barsFt + coord_flip()
+```
+
+```{r}
+# new base
+baseRE  = ggplot(zones_monthsfinsecureDF, 
+                 aes(x = m_foodins, #here
+                     y = share ) ) + theme_minimal()
+
+barPlotRE = baseRE + geom_bar( stat = "identity" ) 
+barFtRE = barPlotRE + facet_grid( ~ zones) 
+barFtRE= barFtRE + coord_flip() 
+
+
+barFtRE
+```
+
+```{r}
+#Would you annotate the bars:
+
+barREann= barFtRE+ geom_text(aes(label=round(share,2)),
+                             nudge_y = 0.15)
+barREann
+
+#Let’s annotate conditionally instead:
+
+barCond=barFtRE + geom_text(aes(label=ifelse(share>0.05,# condition to annotate
+                                      round(share,2),"")),
+                     nudge_y = 0.15)
+barCond
+```
+
+```{r}
+#Add titles:
+titleText='Nigeria 2015-16: Food Insecurity for Agricultural SSP by Geographic Zones'
+sourceText='Source: Evans School Policy Analysis and Research Group (EPAR).'
+x_axis='Number of Months Food Insecure'
+y_axis='Percentage of Total Households surveyed (%)'
+check="Zones"
+barFtRE = barFtRE + labs(title=titleText,
+                     x =x_axis,
+                     y =y_axis,
+                     caption = sourceText,
+                     fill =check) 
+barFtRE
+```
+
+* Title/subtitle positions:
+```{r}
+#positions: 0 left / 1 right / 0.5 center
+barFtRE = barFtRE + theme(plot.caption = element_text(hjust = 0), 
+                      plot.title = element_text(hjust = 0.5))
+barFtRE
+```
+
+```{r}
+#What about percents instead:
+
+barFtRE + geom_text(aes(label=ifelse(share>0.05,
+                                      percent(share,accuracy = 1),# %
+                                     "")),
+                     nudge_y = 0.1,size=3) + 
+           scale_y_continuous(labels = percent_format(accuracy = 1,suffix="")) #%
+```
+
+
